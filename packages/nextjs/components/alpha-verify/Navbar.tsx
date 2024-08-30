@@ -6,6 +6,7 @@ import { useAccount } from "wagmi";
 
 import { RainbowKitCustomConnectButton } from '@/components/scaffold-eth';
 import { FaucetButton } from '@/components/scaffold-eth';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 const navLinks = [
   // { label: 'Home', href: '#' },
@@ -44,7 +45,8 @@ const Navbar = () => {
           ))}
         </ul> */}
         <div className="navbar-end flex-grow mr-4">
-          <RainbowKitCustomConnectButton />
+          {/* <RainbowKitCustomConnectButton /> */}
+          <ConnectButton />
           <FaucetButton />
         </div>
       </div>

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
+import { useScaffoldReadContract } from "@/hooks/scaffold-eth";
 
 // Simulated blockchain and database functions
 const simulateMint = () => Math.floor(Math.random() * 1000000)
@@ -21,6 +22,15 @@ export default function MintCertificate() {
   const [verificationAccessToken, setVerificationAccessToken] = useState('');
   const [approvedAddress, setApprovedAddress] = useState('');
   const [certificateContent, setCertificateContent] = useState('');
+  const {data} = useScaffoldReadContract({
+    contractname: "AlphaVerify",
+    functionname: "getTokenId",
+    args: ["0"],
+  });
+
+
+
+  console.log(JSON.stringify(data));
 
   const handleMint = () => {
     const newTokenId = simulateMint();
@@ -28,6 +38,7 @@ export default function MintCertificate() {
     setHasMinted(true);
     setCertificateContent(`Certificate for TokenID: ${newTokenId}`);
   };
+
 
   const handleGenerateAccessToken = () => {
     const newAccessToken = simulateGenerateAccessToken();
