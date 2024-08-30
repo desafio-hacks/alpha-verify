@@ -8,7 +8,7 @@ import { Contract } from "ethers";
  *
  * @param hre HardhatRuntimeEnvironment object.
  */
-const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+const deployAlphaVerifyContract: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   /*
     On localhost, the deployer account is the one that comes with Hardhat, which is already funded.
 
@@ -22,10 +22,10 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   const { deployer } = await hre.getNamedAccounts();
   const { deploy } = hre.deployments;
 
-  await deploy("YourContract", {
+  await deploy("AlphaVerify", {
     from: deployer,
     // Contract constructor arguments
-    args: [deployer],
+    // args: [deployer],
     log: true,
     // autoMine: can be passed to the deploy function to make the deployment process faster on local networks by
     // automatically mining the contract deployment transaction. There is no effect on live networks.
@@ -33,12 +33,12 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   });
 
   // Get the deployed contract to interact with it after deploying.
-  const yourContract = await hre.ethers.getContract<Contract>("YourContract", deployer);
-  console.log("👋 Initial greeting:", await yourContract.greeting());
+  const alphaVerify = await hre.ethers.getContract<Contract>("AlphaVerify", deployer);
+  console.log("AlphaVerify Contract Deployed at " + alphaVerify.target);
 };
 
-export default deployYourContract;
+export default deployAlphaVerifyContract;
 
 // Tags are useful if you have multiple deploy files and only want to run one of them.
 // e.g. yarn deploy --tags YourContract
-deployYourContract.tags = ["YourContract"];
+deployAlphaVerifyContract.tags = ["AlphaVerify"];
