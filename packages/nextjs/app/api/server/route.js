@@ -4,25 +4,29 @@ const crypto = require("crypto");
 const app = express();
 const port = 3000;
 
-app.use(cors()); // This enables CORS for all routes
+app.use(cors());
 app.use(express.json());
 
-// Simulated database of students and their certifications
 const studentDatabase = new Map();
 
-app.post("/approve-certification", async (req, res) => {
+function errorResponse(res, status, message) {
+  return res.status(status).json({ success: false, error: message });
+}
+
+app.post("/approve-certification", (req, res) => {
   try {
     const { studentAddress } = req.body;
 
-    // Check if the student exists in the database
-    if (!studentDatabase.has(studentAddress)) {
-      return res.status(404).json({ success: false, error: "Student not found in database" });
+    if (!studentAddress) {
+      return errorResponse(res, 400, "Student address is required");
     }
 
-    // Generate a unique certId
+    if (!studentDatabase.has(studentAddress)) {
+      return errorResponse(res, 404, "Student not found in database");
+    }
+
     const certId = crypto.randomBytes(16).toString("hex");
 
-    // Update the student's record with the new certification
     const studentData = studentDatabase.get(studentAddress);
     studentData.certId = certId;
     studentData.certificationApproved = true;
@@ -30,17 +34,20 @@ app.post("/approve-certification", async (req, res) => {
 
     res.json({ success: true, message: "Certification approved", certId });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    errorResponse(res, 500, error.message);
   }
 });
 
-app.get("/certificate/:studentAddress", async (req, res) => {
+app.get("/certificate", (req, res) => {
   try {
-    const studentAddress = req.params.studentAddress;
+    const { studentAddress } = req.query;
 
-    // Check if the student exists and is approved for certification
+    if (!studentAddress) {
+      return errorResponse(res, 400, "Student address is required");
+    }
+
     if (!studentDatabase.has(studentAddress) || !studentDatabase.get(studentAddress).certificationApproved) {
-      return res.status(404).json({ success: false, error: "Student not approved for certification" });
+      return errorResponse(res, 404, "Student not approved for certification");
     }
 
     const studentData = studentDatabase.get(studentAddress);
@@ -55,17 +62,27 @@ app.get("/certificate/:studentAddress", async (req, res) => {
       message: "Certificate is ready to be minted",
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    errorResponse(res, 500, error.message);
   }
 });
 
-// Endpoint to add a student to the database (for demonstration purposes)
 app.post("/add-student", (req, res) => {
   const { address, name, course, graduationDate } = req.body;
+
+  if (!address || !name || !course || !graduationDate) {
+    return errorResponse(res, 400, "All fields are required");
+  }
+
   studentDatabase.set(address, { name, course, graduationDate, certificationApproved: false });
   res.json({ success: true, message: "Student added to database" });
+});
+
+app.get("/", (req, res) => {
+  res.send("Welcome to AlphaVerify Application Programming Interface");
 });
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
+
+// {"address": "0xb7B943fFbA78e33589971e630AD6EB544252D88C", "name": "Nobel Samuel", "course": "Programming", "graduationDate": "21-08-2024"}
