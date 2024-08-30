@@ -1,6 +1,11 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Address } from "@/components/scaffold-eth";
+import { useAccount } from "wagmi";
+
+import { RainbowKitCustomConnectButton } from '@/components/scaffold-eth';
+import { FaucetButton } from '@/components/scaffold-eth';
 
 const navLinks = [
   // { label: 'Home', href: '#' },
@@ -9,6 +14,9 @@ const navLinks = [
 ];
 
 const Navbar = () => {
+
+  // const { address: connectedAddress } = useAccount();
+
   return (
     <div className='container mt-12 flex mx-auto justify-between items-center'>
       <div>
@@ -20,11 +28,13 @@ const Navbar = () => {
             alt='logo'
           />
         </Link>
+        {/* <Address address={"0x742d35Cc6634C0532925a3b844Bc454e4438f44e"} /> */}
+
         
       </div>
 
       <div className="flex">
-        <ul className='flex justify-between items-center gap-10 p-4'>
+        {/* <ul className='flex justify-between items-center gap-10 p-4'>
           {navLinks.map(({ label, href }, index) => (
             <li key={index}>
               <Link href={href} className='text-xl'>
@@ -32,7 +42,11 @@ const Navbar = () => {
               </Link>
             </li>
           ))}
-        </ul>
+        </ul> */}
+        <div className="navbar-end flex-grow mr-4">
+          <RainbowKitCustomConnectButton />
+          <FaucetButton />
+        </div>
       </div>
     </div>
   );
