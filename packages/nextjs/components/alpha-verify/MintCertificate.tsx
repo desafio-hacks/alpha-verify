@@ -52,7 +52,7 @@ export default function MintCertificate() {
     console.log(data)
     setTokenId(data)
   }
-  getTokenId()
+  // getTokenId()
   
   const getAccessToken = async (tokenId: number) => {
     const data = await alphaverify.methods.getAccessToken(tokenId).call()
@@ -93,10 +93,12 @@ export default function MintCertificate() {
     // const newTokenId = simulateMint();
     const accounts = await window.ethereum.request({ method: 'eth_accounts' })
     console.log(accounts[0])
-    const newTokenId = handleMintClick(accounts[0]);
-    setTokenId(newTokenId);
-    setHasMinted(true);
-    setCertificateContent(`Certificate for TokenID: ${newTokenId}`);
+    const newTokenId = await handleMintClick(accounts[0]).then(() => {
+      // setCertificateContent(`Certificate for TokenID: ${tokenId}`);
+      // setTokenId(tokenId);
+      setHasMinted(true);
+    });
+    // console.log(newTokenId)
   };
 
 

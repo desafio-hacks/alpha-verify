@@ -77,6 +77,7 @@ async function mintCertificate(studentAddress: string) {
             // await approveCertification(studentAddress);
             
             // Then, get the certificate details
+            console.log(studentAddress)
             const certDetails = await getCertificateDetails(studentAddress);
             console.log(certDetails)
             
@@ -142,8 +143,8 @@ async function addStudent(studentAddress: string, name: string, course: string, 
 }
 
 // This function would be called when the user clicks a "Mint Certificate" button
-function handleMintClick(studentAddress: string) {
-    mintCertificate(studentAddress);
+async function handleMintClick(studentAddress: string) {
+    await mintCertificate(studentAddress);
 }
 
 export { handleMintClick, addStudent };
