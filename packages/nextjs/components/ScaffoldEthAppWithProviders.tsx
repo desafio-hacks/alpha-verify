@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RainbowKitProvider, darkTheme, lightTheme } from "@rainbow-me/rainbowkit";
+import { RainbowKitProvider, darkTheme, getDefaultConfig, lightTheme } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useTheme } from "next-themes";
 import { Toaster } from "react-hot-toast";
 import { WagmiProvider } from "wagmi";
-import { Footer } from "~~/components/Footer";
-import { Header } from "~~/components/Header";
-import { BlockieAvatar } from "~~/components/scaffold-eth";
-import { ProgressBar } from "~~/components/scaffold-eth/ProgressBar";
-import { useInitializeNativeCurrencyPrice } from "~~/hooks/scaffold-eth";
-import { wagmiConfig } from "~~/services/web3/wagmiConfig";
+import { Footer } from "@/components/Footer";
+import { Header } from "@/components/Header";
+import { BlockieAvatar } from "@/components/scaffold-eth";
+import { ProgressBar } from "@/components/scaffold-eth/ProgressBar";
+import { useInitializeNativeCurrencyPrice } from "@/hooks/scaffold-eth";
+import { wagmiConfig } from "@/services/web3/wagmiConfig";
+import { http, createConfig } from 'wagmi'
+import { optimismSepolia } from 'wagmi/chains'
 
 const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
   useInitializeNativeCurrencyPrice();
@@ -19,14 +21,22 @@ const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
   return (
     <>
       <div className="flex flex-col min-h-screen">
-        <Header />
+        {/* <Header /> */}
         <main className="relative flex flex-col flex-1">{children}</main>
-        <Footer />
+        {/* <Footer /> */}
       </div>
       <Toaster />
     </>
   );
 };
+
+export const config = createConfig({
+  chains: [optimismSepolia],
+  transports: {
+    [optimismSepolia.id]: http(),
+    // [sepolia.id]: http(),
+  },
+});
 
 export const queryClient = new QueryClient({
   defaultOptions: {

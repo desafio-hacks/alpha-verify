@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
+
 const mongoose = require("mongoose");
 require("dotenv").config();
 
@@ -9,6 +10,7 @@ const port = process.env.PORT || 3001;
 
 const allowedOrigins = ["http://localhost:3000", "http://localhost:3001"];
 app.use(
+
   cors({
     origin: function (origin, callback) {
       if (!origin) return callback(null, true); // Allow requests with no origin
@@ -51,11 +53,14 @@ const studentSchema = new mongoose.Schema({
 
 const Student = mongoose.model("Student", studentSchema);
 
+
 function errorResponse(res, status, message) {
   return res.status(status).json({ success: false, error: message });
 }
 
+
 app.post("/approve-certification", async (req, res) => {
+
   try {
     const { studentAddress } = req.body;
 
@@ -63,13 +68,16 @@ app.post("/approve-certification", async (req, res) => {
       return errorResponse(res, 400, "Student address is required");
     }
 
+
     const student = await Student.findOne({ studentAddress });
 
     if (!student) {
+
       return errorResponse(res, 404, "Student not found in database");
     }
 
     const certId = crypto.randomBytes(16).toString("hex");
+
 
     student.certId = certId;
     student.certificationApproved = true;
@@ -78,11 +86,14 @@ app.post("/approve-certification", async (req, res) => {
     res.json({ success: true, message: "Certification approved", certId });
   } catch (error) {
     console.error("Error:", error.message);
+
     errorResponse(res, 500, error.message);
   }
 });
 
+
 app.get("/certificate", async (req, res) => {
+
   try {
     const { studentAddress } = req.query;
 
@@ -102,14 +113,18 @@ app.get("/certificate", async (req, res) => {
       studentName: student.name,
       course: student.course,
       graduationDate: student.graduationDate,
+
       schoolName: "Your School Name",
       message: "Certificate is ready to be minted",
     });
   } catch (error) {
+
     console.error("Error:", error.message);
+
     errorResponse(res, 500, error.message);
   }
 });
+
 
 app.post("/add-student", async (req, res) => {
   try {
@@ -137,6 +152,7 @@ app.post("/add-student", async (req, res) => {
       errorResponse(res, 500, error.message);
     }
   }
+
 });
 
 app.get("/", (req, res) => {
