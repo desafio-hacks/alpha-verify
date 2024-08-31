@@ -63,7 +63,8 @@ export default function MintCertificate() {
   }
   const generateAccessToken = async (tokenId: number) => {
     const accounts = await window.ethereum.request({ method: 'eth_accounts' })
-    const date = Date.now()
+    const thirtyMinutesInMs = 30 * 60 * 1000
+    const date = Date.now() + thirtyMinutesInMs
     await alphaverify.methods.generateAccessToken(tokenId, date).send({ from: accounts[0]})
     const data = await getAccessToken(tokenId)
     setAccessToken(data)
@@ -163,6 +164,7 @@ export default function MintCertificate() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="student">
+            <button onClick={() => setHasMinted(!hasMinted)} className="p-1 text-sm  bg-blue-200 rounded-md">toggle mint</button>
             {hasMinted ? (
               <Button onClick={handleMint} className="mt-4 w-full text-lg font-semibold bg-black text-white hover:bg-black hover:text-white">Mint Certificate</Button>
             ) : (
