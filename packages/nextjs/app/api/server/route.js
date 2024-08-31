@@ -71,13 +71,13 @@ app.get("/certificate", (req, res) => {
 });
 
 app.post("/add-student", (req, res) => {
-  const { address, name, course, graduationDate } = req.body;
+  const { studentAddress, name, course, graduationDate } = req.body;
 
-  if (!address || !name || !course || !graduationDate) {
+  if (!studentAddress || !name || !course || !graduationDate) {
     return errorResponse(res, 400, "All fields are required");
   }
 
-  studentDatabase.set(address, { name, course, graduationDate, certificationApproved: false });
+  studentDatabase.set(studentAddress, { name, course, graduationDate, certificationApproved: false });
   res.json({ success: true, message: "Student added to database" });
 });
 
@@ -89,4 +89,4 @@ app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
 
-// {"address": "0xb7B943fFbA78e33589971e630AD6EB544252D88C", "name": "Nobel Samuel", "course": "Programming", "graduationDate": "21-08-2024"}
+// {"studentAddress": "0xb7B943fFbA78e33589971e630AD6EB544252D88C", "name": "Nobel Samuel", "course": "Programming", "graduationDate": "21-08-2024"}

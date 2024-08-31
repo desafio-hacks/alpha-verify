@@ -1,20 +1,23 @@
 const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
-const { kv } = require("@vercel/kv");
-
 const app = express();
 const port = process.env.PORT || 3001;
 
 const allowedOrigins = ["http://localhost:3000", "http://localhost:3001"];
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(
+  cors({ origin: allowedOrigins, credentials: true }) //allowedHeaders: ["*"]
+);
+app.use(cors());
 app.use(express.json());
+
+const studentDatabase = new Map();
 
 function errorResponse(res, status, message) {
   return res.status(status).json({ success: false, error: message });
 }
 
-app.post("/approve-certification", async (req, res) => {
+app.post("/approve-certification", (req, res) => {
   try {
     const { studentAddress } = req.body;
 
@@ -22,16 +25,16 @@ app.post("/approve-certification", async (req, res) => {
       return errorResponse(res, 400, "Student address is required");
     }
 
-    const studentData = await kv.get(studentAddress);
-    if (!studentData) {
+    if (!studentDatabase.has(studentAddress)) {
       return errorResponse(res, 404, "Student not found in database");
     }
 
     const certId = crypto.randomBytes(16).toString("hex");
 
+    const studentData = studentDatabase.get(studentAddress);
     studentData.certId = certId;
     studentData.certificationApproved = true;
-    await kv.set(studentAddress, studentData);
+    studentDatabase.set(studentAddress, studentData);
 
     res.json({ success: true, message: "Certification approved", certId });
   } catch (error) {
@@ -39,7 +42,7 @@ app.post("/approve-certification", async (req, res) => {
   }
 });
 
-app.get("/certificate", async (req, res) => {
+app.get("/certificate", (req, res) => {
   try {
     const { studentAddress } = req.query;
 
@@ -47,10 +50,14 @@ app.get("/certificate", async (req, res) => {
       return errorResponse(res, 400, "Student address is required");
     }
 
-    const studentData = await kv.get(studentAddress);
-    if (!studentData || !studentData.certificationApproved) {
+    if (
+      !studentDatabase.has(studentAddress) ||
+      !studentDatabase.get(studentAddress).certificationApproved
+    ) {
       return errorResponse(res, 404, "Student not approved for certification");
     }
+
+    const studentData = studentDatabase.get(studentAddress);
 
     res.json({
       success: true,
@@ -66,14 +73,14 @@ app.get("/certificate", async (req, res) => {
   }
 });
 
-app.post("/add-student", async (req, res) => {
+app.post("/add-student", (req, res) => {
   const { studentAddress, name, course, graduationDate } = req.body;
 
   if (!studentAddress || !name || !course || !graduationDate) {
     return errorResponse(res, 400, "All fields are required");
   }
 
-  await kv.set(studentAddress, {
+  studentDatabase.set(studentAddress, {
     name,
     course,
     graduationDate,
@@ -87,5 +94,5 @@ app.get("/", (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  console.log(`Server running at http://localhost:${port}`);
 });
