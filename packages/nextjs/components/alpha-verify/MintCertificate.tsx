@@ -7,7 +7,11 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
-import { useScaffoldReadContract } from "@/hooks/scaffold-eth";
+import { useScaffoldReadContract, useScaffoldWriteContract } from "@/hooks/scaffold-eth";
+import { useAccount, useReadContract } from "wagmi";
+import { writeSync } from "fs";
+import { alphaverify, web3 } from "@/backend/alphaverify";
+import { addStudent, handleMintClick } from "@/backend/school";
 
 // Simulated blockchain and database functions
 const simulateMint = () => Math.floor(Math.random() * 1000000)
@@ -16,47 +20,110 @@ const simulateGenerateAccessToken = () => Math.random().toString(36).substring(2
 export default function MintCertificate() {
   const [userRole, setUserRole] = useState('student');
   const [hasMinted, setHasMinted] = useState(false);
-  const [tokenId, setTokenId] = useState(null);
+  const [tokenId, setTokenId] = useState<any>(null);
   const [accessToken, setAccessToken] = useState(null);
-  const [verificationTokenId, setVerificationTokenId] = useState('');
+  const [verificationTokenId, setVerificationTokenId] = useState();
   const [verificationAccessToken, setVerificationAccessToken] = useState('');
   const [approvedAddress, setApprovedAddress] = useState('');
   const [certificateContent, setCertificateContent] = useState('');
-  const {data} = useScaffoldReadContract({
-    contractname: "AlphaVerify",
-    functionname: "getTokenId",
-    args: ["0"],
-  });
+  const [name, setName] = useState('');
+  const [course, setCourse] = useState('');
+  const [graduationDate, setGraduationDate] = useState('');
+  const [studentAddress, setStudentAddress] = useState('');
+  // const [] = useAccount();
+  // const {data: id} = useScaffoldWriteContract({
+  //   contractName: "AlphaVerify",
+  //   functionName: "getTokenId",
+  //   args: ["0"],
+  // })
+  // const { writeAsync, isLoading, isMining } = useScaffoldReadContract({
+  //   contractName: "AlphaVErify",
+  //   functionName: "getTokenId",
+  //   args: ["0"],
+  //   blockConfirmation: 1,
+  //   onBlockConfirmation: (txnReceipt) => {
+  //   console.log("Transaction blockHash",  txnReceipt.blockHash);
+  //   }
+  //   });
+
+  const getTokenId = async () => {
+    const accounts = await window.ethereum.request({ method: 'eth_accounts' })
+    const data = await alphaverify.methods.getTokenId(accounts[0]).call()
+    console.log(data)
+    setTokenId(data)
+  }
+  getTokenId()
+  
+  const getAccessToken = async (tokenId: number) => {
+    const data = await alphaverify.methods.getAccessToken(tokenId).call()
+    return data
+  }
+  const generateAccessToken = async (tokenId: number) => {
+    const accounts = await window.ethereum.request({ method: 'eth_accounts' })
+    const date = Date.now()
+    await alphaverify.methods.generateAccessToken(tokenId, date).send({ from: accounts[0]})
+    const data = await getAccessToken(tokenId)
+    setAccessToken(data)
+  }
+  const revokeAccessToken = async (tokenId: number) => {
+  const accounts = await window.ethereum.request({ method: 'eth_accounts' })
+    const data = await alphaverify.methods.revokeAccessToken(tokenId).send({from: accounts[0]})
+    console.log(data)
+  }
+  const checkAccessTokenValidity = async () => {
+    const data = await alphaverify.methods.checkAccessTokenValidity().call()
+    console.log(data)
+  }
+  const getCertificateId = async (id: number, access: string) => {
+    const accessTokenBytes = "0x" + access
+    const data = await alphaverify.methods.getCertificateId(id, accessTokenBytes).call()
+    console.log(data)
+    return data
+  }
+
+  // mintCertificate()
 
 
+    
 
-  console.log(JSON.stringify(data));
 
-  const handleMint = () => {
-    const newTokenId = simulateMint();
+  // console.log(JSON.stringify(id));
+
+  const handleMint = async () => {
+    // const newTokenId = simulateMint();
+    const accounts = await window.ethereum.request({ method: 'eth_accounts' })
+    console.log(accounts[0])
+    const newTokenId = handleMintClick(accounts[0]);
     setTokenId(newTokenId);
     setHasMinted(true);
     setCertificateContent(`Certificate for TokenID: ${newTokenId}`);
   };
 
 
-  const handleGenerateAccessToken = () => {
-    const newAccessToken = simulateGenerateAccessToken();
-    setAccessToken(newAccessToken);
+  const handleGenerateAccessToken = async () => {
+    // const newAccessToken = simulateGenerateAccessToken();
+    await generateAccessToken(tokenId);
+    // setAccessToken(newAccessToken);
   };
-
-  const handleRevokeAccessToken = () => {
+;
+  const handleRevokeAccessToken = async () => {
+    await revokeAccessToken(tokenId)
     setAccessToken(null);
   };
 
-  const handleVerifyCertificate = () => {
-    if (verificationTokenId === tokenId.toString() && verificationAccessToken === accessToken) {
+  const handleVerifyCertificate = async () => {
+    const certId = await getCertificateId(verificationTokenId, verificationAccessToken)
+    // if (verificationTokenId === tokenId.toString() && verificationAccessToken === accessToken) {
+    if (certId) {
       alert('Certificate verified successfully!');
     } else {
       alert('Invalid TokenID or AccessToken');
     }
   };
 
+  const handleAddStudent = async () => {
+    await addStudent(studentAddress, name, course, graduationDate);
+  }
   const handleApproveAddress = () => {
     alert(`Address ${approvedAddress} approved for minting`);
   };
@@ -76,8 +143,8 @@ export default function MintCertificate() {
             >
               Student
             </TabsTrigger>
-            <TabsTrigger 
-              value="employer" 
+            <TabsTrigger
+            value="employer"
               className={`px-4 py-2 rounded-full font-semibold transition-colors ${userRole === 'employer' ? 'bg-black text-white' : 'bg-transparent text-black border border-black'}`}
             >
               Employer
@@ -139,6 +206,43 @@ export default function MintCertificate() {
           <TabsContent value="school">
             <div className="space-y-4 mt-4">
               <div>
+                <Label htmlFor="studentAddress" className="text-sm font-semibold">Student Address</Label>
+                <Input
+                  id="studentAddress"
+                  value={studentAddress}
+                  onChange={(e) => setStudentAddress(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="name" className="text-sm font-semibold">Student Name</Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="course" className="text-sm font-semibold">Course:</Label>
+                <Input
+                  id="course"
+                  value={course}
+                  onChange={(e) => setCourse(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="graduationDate" className="text-sm font-semibold">Graduation Date</Label>
+                <Input
+                  id="graduationDate"
+                  value={graduationDate}
+                  onChange={(e) => setGraduationDate(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <Button onClick={handleAddStudent} className="w-full text-lg font-semibold bg-black text-white hover:bg-black hover:text-white">Add Student</Button>
+              {/* <div>
                 <Label htmlFor="approvedAddress" className="text-sm font-semibold">Address to Approve:</Label>
                 <Input
                   id="approvedAddress"
@@ -147,7 +251,7 @@ export default function MintCertificate() {
                   className="mt-1"
                 />
               </div>
-              <Button onClick={handleApproveAddress} className="w-full text-lg font-semibold bg-black text-white hover:bg-black hover:text-white">Approve Address for Minting</Button>
+              <Button onClick={handleMint} className="w-full text-lg font-semibold bg-black text-white hover:bg-black hover:text-white">Approve Address for Minting</Button> */}
             </div>
           </TabsContent>
         </Tabs>
