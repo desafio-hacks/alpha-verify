@@ -118,10 +118,39 @@ const config: HardhatUserConfig = {
       url: "https://sepolia.publicgoods.network",
       accounts: [deployerPrivateKey],
     },
+    "lisk-sepolia": {
+      url: "https://rpc.sepolia-api.lisk.com",
+      accounts: [process.env.DEPLOYER_PRIVATE_KEY as string],
+      gasPrice: 1000000000,
+    },
   },
   // configuration for harhdat-verify plugin
   etherscan: {
-    apiKey: `${etherscanApiKey}`,
+    // apiKey: `${etherscanApiKey}`,
+    // apiKey: {
+    //   "lisk-sepolia": "123",
+    // },
+    apiKey: {
+      optimismSepolia: "GK9IG59VET5HBX56J7GN665F3X9988HJ4I",
+    },
+    customChains: [
+      {
+        network: "lisk-sepolia",
+        chainId: 4202,
+        urls: {
+          apiURL: "https://sepolia-blockscout.lisk.com/api",
+          browserURL: "https://sepolia-blockscout.lisk.com",
+        },
+      },
+      {
+        network: "optimismSepolia",
+        chainId: 11155420,
+        urls: {
+          apiURL: "https://api-sepolia-optimistic.etherscan.io/api",
+          browserURL: "https://api-sepolia-optimistic.etherscan.io",
+        },
+      },
+    ],
   },
   // configuration for etherscan-verify from hardhat-deploy plugin
   verify: {
