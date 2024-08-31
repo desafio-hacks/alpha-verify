@@ -92,9 +92,9 @@ app.get("/certificate", async (req, res) => {
 
     const student = await Student.findOne({ studentAddress });
 
-    if (!student || !student.certificationApproved) {
-      return errorResponse(res, 404, "Student not approved for certification");
-    }
+    // if (!student || !student.certificationApproved) {
+    //   return errorResponse(res, 404, "Student not approved for certification");
+    // }
 
     res.json({
       success: true,
