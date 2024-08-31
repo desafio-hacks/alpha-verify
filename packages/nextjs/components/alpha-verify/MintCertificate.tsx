@@ -64,7 +64,7 @@ export default function MintCertificate() {
   const generateAccessToken = async (tokenId: number) => {
     const accounts = await window.ethereum.request({ method: 'eth_accounts' })
     const date = Date.now()
-    await alphaverify.methods.generateAccessToken(2, date).send({ from: accounts[0]})
+    await alphaverify.methods.generateAccessToken(tokenId, date).send({ from: accounts[0]})
     const data = await getAccessToken(tokenId)
     setAccessToken(data)
     console.log(data)
