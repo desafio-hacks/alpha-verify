@@ -3,13 +3,69 @@ import externalContracts from '@/contracts/externalContracts';
 import { ethers } from 'ethers';
 import { create } from 'ipfs-http-client';
 import { Web3} from "web3"
+import axios from 'axios';
+import { PinataSDK } from "pinata";
+import FormData from 'form-data';
+import fs from 'fs';
+
+const pinata = new PinataSDK({
+    pinataJwt: "PINATA_JWT",
+    pinataGateway: "example-gateway.mypinata.cloud",
+});
+
+const JWT = process.env.API_KEY;
+const gateway = "https://coral-worrying-turtle-782.mypinata.cloud/"
+
+
+
+
+
+const pinFileToIPFS = async (metadata: any) => {
+    const formData = new FormData();
+    const src = "path/to/file.png";
+
+    // const file = fs.createReadStream(src)
+    formData.append('file', metadata)
+
+    const pinataMetadata = JSON.stringify({
+      name: 'File name',
+    });
+    formData.append('pinataMetadata', pinataMetadata);
+
+    const pinataOptions = JSON.stringify({
+      cidVersion: 0,
+    })
+    formData.append('pinataOptions', pinataOptions);
+
+    try{
+    //   const res = await axios.post("https://api.pinata.cloud/pinning/pinFileToIPFS", formData, {
+      const res = await axios.post(gateway, formData, {
+        maxBodyLength: "Infinity",
+        headers: {
+          'Content-Type': `multipart/form-data; boundary=${formData._boundary}`,
+          'Authorization': `Bearer ${JWT}`
+        }
+      });
+      console.log(res.data);
+    } catch (error) {
+      console.log(error);
+    }
+}
+
+
+
+
+
+
+
+
 
 // Configuration
 const CONFIG = {
     CONTRACT_ADDRESS: '0xCaeC3B55dF16ec145B9e262a3Bd2A225b081630F', // Your deployed contract address
     SCHOOL_BACKEND_URL: "https://alpha-verify-server.vercel.app", // Production
     // SCHOOL_BACKEND_URL: "http://localhost:3001", // Production
-    IPFS_URL: 'https://aquamarine-famous-penguin-727.mypinata.cloud/ipfs/',  // Or your preferred IPFS gateway
+    IPFS_URL: 'https://aquamarine-famous-penguin-727.mypinata.cloud/ipfs/QmPG1wiULtXJNPypDhAdT9t67mrxRG4XieEx9U1mvxzbcP/',  // Or your preferred IPFS gateway
     SAMPLE_IMAGE_CID: 'QmPG1wiULtXJNPypDhAdT9t67mrxRG4XieEx9U1mvxzbcP'
 };
 
@@ -18,10 +74,38 @@ const CONFIG = {
 // Configure IPFS client
 const ipfs = create({ url: CONFIG.IPFS_URL });
 
-async function uploadToIPFS(content: any) {
-    const result = await ipfs.add(JSON.stringify(content));
-    return `ipfs://${result.path}`;
-}
+// async function uploadToIPFS(content: any) {
+//     const result = await ipfs.add(JSON.stringify(content));
+//     return `ipfs://${result.path}`;
+// }
+
+
+// async function uploadToIPFS(content: any) {
+//     try {
+//         const url = CONFIG.IPFS_URL;
+//         const pinataApiKey = process.env.API_KEY;
+//         const pinataSecretApiKey = process.env.SECRET_KEY;
+
+//         const result = await axios.post(url, content, {
+//             headers: {
+//                 'pinata_api_key': pinataApiKey,
+//                 'pinata_secret_api_key': pinataSecretApiKey,
+//             }
+//         });
+
+//         return `ipfs://${result.data.IpfsHash}`;
+//     } catch (error) {
+//         console.error('Error uploading to IPFS:', error);
+//         throw error;
+//     }
+// }
+
+// // Example usage:
+// const content = { data: "Example content" };
+// uploadToIPFS(content)
+//     .then(ipfsUrl => console.log('IPFS URL:', ipfsUrl))
+//     .catch(error => console.error('Error:', error));
+
 
 async function approveCertification(studentAddress: string) {
     try {
@@ -45,20 +129,55 @@ async function approveCertification(studentAddress: string) {
     }
 }
 
+// async function getCertificateDetails(studentAddress: string) {
+//     try {
+//         // console.log(studentAddress)
+//         // const newres = await fetch(`${CONFIG.SCHOOL_BACKEND_URL}/certificate?studentAddress=0xf0830060f836b8d54bf02049e5905f619487989e`, {
+//         //     method: 'GET',
+//         // });
+//         // console.log(newres)
+//         const response = await fetch(`${CONFIG.SCHOOL_BACKEND_URL}/certificate?studentAddress=${studentAddress}`);
+//         console.log(response)
+//         const data = await response.json();
+//         const ndata = JSON.stringify(data.body)
+//         console.log((ndata))
+//         console.log(data)
+//         if (data.success) {
+//             return data;
+//         } else {
+//             throw new Error(data.error);
+//         }
+//     } catch (error) {
+//         console.error('Error fetching certificate details:', error);
+//         throw error;
+//     }
+// }
+
 async function getCertificateDetails(studentAddress: string) {
+    const url = `https://alpha-verify-server.vercel.app/certificate?studentAddress=0xf0830060f836B8d54bF02049E5905F619487989e`;
+    
     try {
-        const response = await fetch(`${CONFIG.SCHOOL_BACKEND_URL}/certificate?studentAddress=${studentAddress}`);
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const data = await response.json();
+        console.log('Certificate details:', data);
+
         if (data.success) {
             return data;
         } else {
-            throw new Error(data.error);
+            throw new Error(data.error || 'Failed to fetch certificate details');
         }
     } catch (error) {
         console.error('Error fetching certificate details:', error);
         throw error;
     }
 }
+
+
 
 async function mintCertificate(studentAddress: string) {
     if (typeof window.ethereum !== 'undefined') {
@@ -97,14 +216,15 @@ async function mintCertificate(studentAddress: string) {
             };
             
             // Upload metadata to IPFS
-            const tokenURI = await uploadToIPFS(metadata);
+            // const tokenURI = await pinFileToIPFS(metadata);
+            const tokenURI = CONFIG.IPFS_URL;
             console.log(tokenURI)
             
             // Approve the certification on the blockchain
-            let tx = await contract.method.approveCertification(studentAddress, certDetails.certId).send({from: accounts[0]});
+            let tx = await contract.methods.approveCertification(studentAddress, certDetails.certId).send({from: accounts[0]});
             
             // Finally, mint the certificate NFT
-            tx = await contract.method.mintCertificate(certDetails.certId, tokenURI).send({from: accounts[0]});
+            tx = await contract.methods.mintCertificate(certDetails.certId, tokenURI).send({from: accounts[0]});
             
             console.log('Certificate minted successfully!');
             // Here you could update the UI to show the minting was successful
@@ -124,7 +244,6 @@ async function addStudent(studentAddress: string, name: string, course: string, 
         const response = await fetch(`${CONFIG.SCHOOL_BACKEND_URL}/add-student`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json',
-                "Access-Control-Allow-Origin": "no-cors"
              },
             body: JSON.stringify({ studentAddress, name, course, graduationDate })
         });

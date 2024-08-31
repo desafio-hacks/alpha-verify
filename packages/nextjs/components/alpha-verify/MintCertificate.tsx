@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -52,7 +52,10 @@ export default function MintCertificate() {
     console.log(data)
     setTokenId(data)
   }
-  // getTokenId()
+
+  useEffect(() => {
+    getTokenId()
+  }, [])
   
   const getAccessToken = async (tokenId: number) => {
     const data = await alphaverify.methods.getAccessToken(tokenId).call()
@@ -61,9 +64,10 @@ export default function MintCertificate() {
   const generateAccessToken = async (tokenId: number) => {
     const accounts = await window.ethereum.request({ method: 'eth_accounts' })
     const date = Date.now()
-    await alphaverify.methods.generateAccessToken(tokenId, date).send({ from: accounts[0]})
+    await alphaverify.methods.generateAccessToken(2, date).send({ from: accounts[0]})
     const data = await getAccessToken(tokenId)
     setAccessToken(data)
+    console.log(data)
   }
   const revokeAccessToken = async (tokenId: number) => {
   const accounts = await window.ethereum.request({ method: 'eth_accounts' })
@@ -159,14 +163,14 @@ export default function MintCertificate() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="student">
-            {!hasMinted ? (
+            {hasMinted ? (
               <Button onClick={handleMint} className="mt-4 w-full text-lg font-semibold bg-black text-white hover:bg-black hover:text-white">Mint Certificate</Button>
             ) : (
               <div className="space-y-4 mt-4">
                 <Button onClick={() => alert(certificateContent)} className="w-full text-lg font-semibold bg-black text-white hover:bg-black hover:text-white">View Certificate</Button>
                 <div>
                   <Label htmlFor="tokenId" className="text-sm font-semibold">Your TokenID:</Label>
-                  <Input id="tokenId" value={tokenId} readOnly className="mt-1 bg-gray-100" />
+                  <Input id="tokenId" value={Number(tokenId)} onChange={(e) => setTokenId(e.target.value)} className="mt-1 bg-gray-100" />
                 </div>
                 {accessToken ? (
                   <div className="space-y-2">
