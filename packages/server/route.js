@@ -1,8 +1,9 @@
 const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
-const fs = require("fs");
-const path = require("path");
+const mongoose = require("mongoose");
+require("dotenv").config();
+
 const app = express();
 const port = process.env.PORT || 3001;
 
@@ -10,121 +11,125 @@ const allowedOrigins = ["http://localhost:3000", "http://localhost:3001"];
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());
 
-// Path to the JSON file
-const studentFilePath = path.join(__dirname, "students.json");
+const mongoURI = process.env.MONGO_URI;
 
-// Initialize the student database if it doesn't exist
-function initializeStudentDatabase() {
-  if (!fs.existsSync(studentFilePath)) {
-    const initialData = {
-      students: {},
-    };
-    fs.writeFileSync(studentFilePath, JSON.stringify(initialData, null, 2));
-  }
-}
+mongoose
+  .connect(mongoURI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    console.log("Connected to MongoDB");
+  })
+  .catch((error) => {
+    console.error("Error connecting to MongoDB:", error.message);
+  });
 
-// Function to read the student database from JSON file
-function readStudentDatabase() {
-  initializeStudentDatabase(); // Ensure the file is initialized
-  const data = fs.readFileSync(studentFilePath, "utf8");
-  return JSON.parse(data);
-}
+mongoose.set("strictQuery", true);
 
-// Function to write the student database to JSON file
-function writeStudentDatabase(data) {
-  fs.writeFileSync(studentFilePath, JSON.stringify(data, null, 2));
-}
+const studentSchema = new mongoose.Schema({
+  studentAddress: { type: String, required: true, unique: true },
+  name: { type: String, required: true },
+  course: { type: String, required: true },
+  graduationDate: { type: String, required: true },
+  certificationApproved: { type: Boolean, default: false },
+  certId: { type: String },
+});
 
-// Function to handle errors
+const Student = mongoose.model("Student", studentSchema);
+
 function errorResponse(res, status, message) {
   return res.status(status).json({ success: false, error: message });
 }
 
-// Approve certification endpoint
-app.post("/approve-certification", (req, res) => {
+app.post("/approve-certification", async (req, res) => {
   try {
     const { studentAddress } = req.body;
-    const studentDatabase = readStudentDatabase();
 
     if (!studentAddress) {
       return errorResponse(res, 400, "Student address is required");
     }
 
-    if (!studentDatabase.students[studentAddress]) {
+    const student = await Student.findOne({ studentAddress });
+
+    if (!student) {
       return errorResponse(res, 404, "Student not found in database");
     }
 
     const certId = crypto.randomBytes(16).toString("hex");
 
-    studentDatabase.students[studentAddress].certId = certId;
-    studentDatabase.students[studentAddress].certificationApproved = true;
-    writeStudentDatabase(studentDatabase);
+    student.certId = certId;
+    student.certificationApproved = true;
+    await student.save();
 
     res.json({ success: true, message: "Certification approved", certId });
   } catch (error) {
+    console.error("Error:", error.message);
     errorResponse(res, 500, error.message);
   }
 });
 
-// Get certificate details endpoint
-app.get("/certificate", (req, res) => {
+app.get("/certificate", async (req, res) => {
   try {
     const { studentAddress } = req.query;
-    const studentDatabase = readStudentDatabase();
 
     if (!studentAddress) {
       return errorResponse(res, 400, "Student address is required");
     }
 
-    if (
-      !studentDatabase.students[studentAddress] ||
-      !studentDatabase.students[studentAddress].certificationApproved
-    ) {
+    const student = await Student.findOne({ studentAddress });
+
+    if (!student || !student.certificationApproved) {
       return errorResponse(res, 404, "Student not approved for certification");
     }
 
-    const studentData = studentDatabase.students[studentAddress];
-
     res.json({
       success: true,
-      certId: studentData.certId,
-      studentName: studentData.name,
-      course: studentData.course,
-      graduationDate: studentData.graduationDate,
+      certId: student.certId,
+      studentName: student.name,
+      course: student.course,
+      graduationDate: student.graduationDate,
       schoolName: "Your School Name",
       message: "Certificate is ready to be minted",
     });
   } catch (error) {
+    console.error("Error:", error.message);
     errorResponse(res, 500, error.message);
   }
 });
 
-// Add student to the database endpoint
-app.post("/add-student", (req, res) => {
-  const { studentAddress, name, course, graduationDate } = req.body;
-  const studentDatabase = readStudentDatabase();
+app.post("/add-student", async (req, res) => {
+  try {
+    const { studentAddress, name, course, graduationDate } = req.body;
 
-  if (!studentAddress || !name || !course || !graduationDate) {
-    return errorResponse(res, 400, "All fields are required");
+    if (!studentAddress || !name || !course || !graduationDate) {
+      return errorResponse(res, 400, "All fields are required");
+    }
+
+    const newStudent = new Student({
+      studentAddress,
+      name,
+      course,
+      graduationDate,
+    });
+
+    await newStudent.save();
+    res.json({ success: true, message: "Student added to database" });
+  } catch (error) {
+    if (error.code === 11000) {
+      // MongoDB duplicate key error code
+      errorResponse(res, 409, "Student address already exists in the database");
+    } else {
+      console.error("Error:", error.message);
+      errorResponse(res, 500, error.message);
+    }
   }
-
-  studentDatabase.students[studentAddress] = {
-    name,
-    course,
-    graduationDate,
-    certificationApproved: false,
-  };
-
-  writeStudentDatabase(studentDatabase);
-  res.json({ success: true, message: "Student added to database" });
 });
 
-// Welcome route
 app.get("/", (req, res) => {
   res.send("Welcome to AlphaVerify Application Programming Interface");
 });
 
-// Start the server
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
